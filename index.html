@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FCC Validator</title>
+<meta name="description" content="Client-side validator for TSE SPCE ATSEFCC (.FCC) crowdfunding donation files — checks every field against the layout spec v3.0 (07/2022).">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗳️</text></svg>">
+<style>
+html,body{min-height:100%}
+:root{
+  --bg:#F8F7F4; --surface:#FFFFFF; --surface2:#F0EEE8; --ink:#20242B; --muted:#5C6470;
+  --line:#E1DED6; --accent:#24549E; --accent-ink:#FFFFFF; --accent-soft:#E7EDF7;
+  --ok:#17784A; --ok-soft:#E2F1E9; --warn:#9A6A0B; --warn-soft:#F7EED8; --err:#B23227; --err-soft:#F8E4E1;
+  --mono:ui-monospace,'Cascadia Code','JetBrains Mono',Consolas,'Liberation Mono',monospace;
+  --sans:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#14171C; --surface:#1C2129; --surface2:#232935; --ink:#E8EAED; --muted:#99A1AC;
+    --line:#323A47; --accent:#6FA0E8; --accent-ink:#0F1622; --accent-soft:#22304A;
+    --ok:#4FBF87; --ok-soft:#173226; --warn:#D9A83D; --warn-soft:#332A14; --err:#E4776C; --err-soft:#3A1F1C;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#14171C; --surface:#1C2129; --surface2:#232935; --ink:#E8EAED; --muted:#99A1AC;
+  --line:#323A47; --accent:#6FA0E8; --accent-ink:#0F1622; --accent-soft:#22304A;
+  --ok:#4FBF87; --ok-soft:#173226; --warn:#D9A83D; --warn-soft:#332A14; --err:#E4776C; --err-soft:#3A1F1C;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);margin:0;line-height:1.5;font-size:15px}
+.wrap{max-width:1240px;margin:0 auto;padding:28px 24px 80px}
+header.top{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 18px;border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:22px}
+header.top h1{font-size:22px;margin:0;letter-spacing:-.01em}
+header.top .sub{color:var(--muted);font-size:13px}
+header.top .spacer{flex:1}
+.filebtn{font:inherit;font-size:13px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 12px;color:var(--ink);cursor:pointer}
+.filebtn:hover{border-color:var(--accent)}
+.filebtn:focus-visible,button:focus-visible,input:focus-visible,.rec:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:34px 0 12px;font-weight:600}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.filename{font-family:var(--mono);font-size:14px}
+
+.verdict{border-radius:10px;padding:16px 20px;margin-bottom:8px;border:1px solid var(--line);background:var(--surface)}
+.verdict.err{border-color:var(--err);background:var(--err-soft)}
+.verdict.warn{border-color:var(--warn);background:var(--warn-soft)}
+.verdict.ok{border-color:var(--ok);background:var(--ok-soft)}
+.verdict h3{margin:0 0 4px;font-size:16px}
+.verdict p{margin:0;font-size:14px}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;padding:4px 10px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--muted)}
+.chip b{color:var(--ink);font-variant-numeric:tabular-nums}
+.dot{width:8px;height:8px;border-radius:50%;flex:none}
+.dot.ok{background:var(--ok)} .dot.warn{background:var(--warn)} .dot.err{background:var(--err)} .dot.info{background:var(--accent)}
+
+.findings{display:flex;flex-direction:column;gap:10px}
+.finding{display:grid;grid-template-columns:88px 1fr;gap:14px;background:var(--surface);border:1px solid var(--line);border-left-width:4px;border-radius:8px;padding:14px 16px}
+.finding.err{border-left-color:var(--err)} .finding.warn{border-left-color:var(--warn)} .finding.info{border-left-color:var(--accent)} .finding.ok{border-left-color:var(--ok)}
+.finding .tag{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;align-self:start;padding:3px 8px;border-radius:5px;text-align:center}
+.finding.err .tag{background:var(--err-soft);color:var(--err)}
+.finding.warn .tag{background:var(--warn-soft);color:var(--warn)}
+.finding.info .tag{background:var(--accent-soft);color:var(--accent)}
+.finding.ok .tag{background:var(--ok-soft);color:var(--ok)}
+.finding h4{margin:0 0 4px;font-size:14.5px}
+.finding p{margin:0;font-size:13.5px;color:var(--muted)}
+.finding p b{color:var(--ink)}
+.finding .val{font-family:var(--mono);font-size:12.5px;background:var(--surface2);border:1px solid var(--line);border-radius:5px;padding:2px 6px;white-space:pre-wrap;word-break:break-all}
+.finding a{color:var(--accent);cursor:pointer;text-decoration:underline}
+
+table.checks{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:13.5px}
+table.checks th,table.checks td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+table.checks tr:last-child td{border-bottom:none}
+table.checks th{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:var(--surface2)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.err{background:var(--err-soft);color:var(--err)} .pill.info{background:var(--accent-soft);color:var(--accent)}
+.scroll-x{overflow-x:auto}
+
+.explorer{display:grid;grid-template-columns:320px 1fr;gap:18px;align-items:start}
+@media(max-width:900px){.explorer{grid-template-columns:1fr}}
+.reclist{background:var(--surface);border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;max-height:640px}
+.reclist .tools{padding:10px;border-bottom:1px solid var(--line);display:flex;gap:8px}
+.reclist input[type=search]{flex:1;font:inherit;font-size:13px;padding:6px 9px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);min-width:0}
+.reclist label.only{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);white-space:nowrap;cursor:pointer}
+.recscroll{overflow-y:auto;flex:1}
+.rec{display:grid;grid-template-columns:14px 52px 1fr auto;gap:8px;align-items:center;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid var(--line);padding:7px 12px;font:inherit;font-size:13px;color:var(--ink);cursor:pointer}
+.rec:hover{background:var(--surface2)}
+.rec.sel{background:var(--accent-soft)}
+.rec .ln{color:var(--muted);font-family:var(--mono);font-size:12px}
+.rec .who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rec .rt{font-size:10.5px;font-weight:700;color:var(--muted)}
+.count-note{padding:8px 12px;font-size:12px;color:var(--muted)}
+
+.detail{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:18px 20px;min-width:0}
+.detail h3{margin:0 0 2px;font-size:16px}
+.detail .meta{color:var(--muted);font-size:13px;margin-bottom:14px}
+.linemap{display:flex;height:26px;border-radius:5px;overflow:hidden;border:1px solid var(--line);margin:6px 0 18px}
+.seg{min-width:3px;cursor:pointer;position:relative;border-right:1px solid var(--bg)}
+.seg:last-child{border-right:none}
+.seg.ok{background:var(--ok-soft)} .seg.warn{background:var(--warn)} .seg.err{background:var(--err)} .seg.blank{background:var(--surface2)}
+.seg:hover{filter:brightness(.92)}
+table.fields{width:100%;border-collapse:collapse;font-size:13px}
+table.fields th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;padding:6px 10px;border-bottom:2px solid var(--line)}
+table.fields td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+table.fields tr:last-child td{border-bottom:none}
+table.fields tr.flag-err td{background:var(--err-soft)}
+table.fields tr.flag-warn td{background:var(--warn-soft)}
+td.pos,td.num{font-family:var(--mono);font-size:12.5px;color:var(--muted);white-space:nowrap}
+td.campo{font-weight:600;white-space:nowrap}
+td.campo .tipo{display:block;font-weight:400;font-size:11.5px;color:var(--muted)}
+.value{font-family:var(--mono);font-size:12.5px;background:var(--surface2);border:1px solid var(--line);border-radius:5px;padding:4px 7px;white-space:pre-wrap;word-break:break-all;max-width:520px}
+.value .sp{color:var(--muted);opacity:.55}
+.rule{font-size:12px;color:var(--muted);max-width:260px}
+.msgs{margin:5px 0 0;padding:0;list-style:none;font-size:12px}
+.msgs li{margin-top:3px}
+.msgs li.err{color:var(--err)} .msgs li.warn{color:var(--warn)} .msgs li.info{color:var(--accent)} .msgs li.okm{color:var(--ok)}
+.human{font-size:11.5px;color:var(--muted);margin-top:3px}
+.dropzone{border:2px dashed var(--line);border-radius:12px;background:var(--surface);text-align:center;padding:64px 24px;margin:8px 0 24px}
+.dropzone.drag{border-color:var(--accent);background:var(--accent-soft)}
+.dropzone .dz-title{font-size:20px;text-transform:none;letter-spacing:0;color:var(--ink);margin:0 0 10px;font-weight:600}
+.dropzone p{margin:6px 0}
+.dropzone .dz-note{max-width:62ch;margin:14px auto 0;font-size:13px;color:var(--muted)}
+footer{margin-top:44px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
+footer p{margin:4px 0}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <h1>FCC Validator</h1>
+  <span class="sub">TSE · SPCE Financiamento Coletivo · layout v3.0 (07/2022)</span>
+  <span class="spacer"></span>
+  <span class="filename" id="fname"></span>
+  <button class="filebtn" id="loadbtn" type="button" hidden>Validate another .FCC…</button>
+  <input type="file" id="fileinput" accept=".FCC,.fcc,.txt" hidden>
+</header>
+
+<section class="dropzone" id="dropzone">
+  <h2 class="dz-title">Drop an ATSEFCC file here</h2>
+  <p>…or <button class="filebtn" id="pickbtn" type="button">choose a .FCC file</button></p>
+  <p class="dz-note">Everything runs in your browser — the file is never uploaded anywhere. Each record is checked field by field against the TSE layout: positions, types, fixed values, padding rules, dates, allowed codes, CPF/CNPJ check digits, record order, sums and totals.</p>
+</section>
+
+<main id="report" hidden>
+<div id="verdict"></div>
+<div class="chips" id="chips"></div>
+
+<h2>Findings</h2>
+<div class="findings" id="findings"></div>
+
+<h2>File-level checks</h2>
+<div class="scroll-x"><table class="checks" id="filechecks">
+  <thead><tr><th style="width:110px">Status</th><th style="width:280px">Check</th><th>Result</th></tr></thead>
+  <tbody></tbody>
+</table></div>
+
+<h2>Record explorer — field vs. layout</h2>
+<div class="explorer">
+  <div class="reclist">
+    <div class="tools">
+      <input type="search" id="search" placeholder="Search line, CPF, name…" aria-label="Search records">
+      <label class="only"><input type="checkbox" id="onlyissues"> issues</label>
+    </div>
+    <div class="recscroll" id="recscroll"></div>
+    <div class="count-note" id="countnote"></div>
+  </div>
+  <div class="detail" id="detail"></div>
+</div>
+
+</main>
+
+<footer>
+  <p>Layout source: TSE — <i>Especificação de Layout de Arquivo, SPCE Financiamento Coletivo</i>, versão 3.0 (04/07/2022). Every record must be exactly 375 characters; encoding ISO/IEC 8859-1; no line break after the TRAILER line.</p>
+  <p>Checks marked “unverifiable” depend on TSE registration data (CNPJ da arrecadadora, CNPJ do prestador, agência/conta da fonte “Outros Recursos”) and cannot be validated offline.</p>
+</footer>
+</div>
+
+<script>
+'use strict';
+/* ---------------- Layout definition (TSE spec v3.0) ---------------- */
+const MEIOS = {'00':'Cheque','01':'Transferência eletrônica','04':'Depósito identificado em espécie','06':'Boleto de cobrança','07':'Cartão de crédito','08':'Débito em conta','19':'PIX'};
+const ESPECIES = {'01':'Transferência eletrônica (TED/DOC)','19':'PIX'};
+
+function money(v){ if(!/^\d+$/.test(v)) return null; const n=parseInt(v,10); return 'R$ '+(n/100).toLocaleString('pt-BR',{minimumFractionDigits:2}); }
+function dateHuman(v){ if(!/^\d{8}$/.test(v)) return null; return v.slice(0,2)+'/'+v.slice(2,4)+'/'+v.slice(4,8); }
+function validDate(v){ if(!/^\d{8}$/.test(v)) return false; const d=+v.slice(0,2),m=+v.slice(2,4),y=+v.slice(4,8); if(y<2000||m<1||m>12||d<1)return false; const dim=new Date(y,m,0).getDate(); return d<=dim; }
+function cpfOk(c){ if(!/^\d{11}$/.test(c)||/^(\d)\1{10}$/.test(c))return false; for(const n of[9,10]){let s=0;for(let i=0;i<n;i++)s+=+c[i]*(n+1-i); if(((s*10)%11)%10!==+c[n])return false;} return true; }
+function cnpjOk(c){ if(!/^\d{14}$/.test(c))return false; const w1=[5,4,3,2,9,8,7,6,5,4,3,2],w2=[6].concat(w1); for(const[n,w]of[[12,w1],[13,w2]]){let s=0;for(let i=0;i<n;i++)s+=+c[i]*w[i]; const d=s%11<2?0:11-s%11; if(d!==+c[n])return false;} return true; }
+
+/* Each field: n, campo, de, ate, tipo, fixo?, rule (text), extra(value, ctx) -> [{sev,msg}] */
+const LAYOUTS = {
+'1':{name:'HEADER',desc:'Identificação da empresa arrecadadora',fields:[
+ {n:1,campo:'Registro',de:1,ate:1,tipo:'I',fixo:'1',rule:'Fixed “1”'},
+ {n:2,campo:'CNPJ',de:2,ate:15,tipo:'N',rule:'CNPJ of the collecting company (empresa arrecadadora)',extra:v=>cnpjOk(v)?[]:[{sev:'warn',msg:'CNPJ check digits are invalid'}],human:v=>/^\d{14}$/.test(v)?v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,'$1.$2.$3/$4-$5'):null},
+ {n:3,campo:'Nome Fantasia',de:16,ate:115,tipo:'A',rule:'Blank-padded to the right',extra:v=>v.trim()===''?[{sev:'err',msg:'Mandatory field is empty'}]:(v!==v.trimStart()?[{sev:'warn',msg:'Value is not left-aligned (leading spaces)'}]:[])},
+ {n:4,campo:'Versão layout',de:116,ate:118,tipo:'N',fixo:'100',rule:'Fixed “100”'},
+ {n:5,campo:'Nome layout',de:119,ate:125,tipo:'A',fixo:'ATSEFCC',rule:'Fixed “ATSEFCC”'},
+ {n:6,campo:'Espaço em branco',de:126,ate:375,tipo:'B',rule:'250 spaces'}]},
+'2':{name:'DETALHE 1',desc:'Doação repassada ao candidato / partido',fields:[
+ {n:1,campo:'Registro',de:1,ate:1,tipo:'I',fixo:'2',rule:'Fixed “2”'},
+ {n:2,campo:'CNPJ',de:2,ate:15,tipo:'N',rule:'CNPJ of the beneficiary (candidato/partido). Must match the prestador de contas importing the file.',extra:v=>cnpjOk(v)?[]:[{sev:'warn',msg:'CNPJ check digits are invalid'}],human:v=>/^\d{14}$/.test(v)?v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,'$1.$2.$3/$4-$5'):null},
+ {n:3,campo:'Página Web',de:16,ate:270,tipo:'A',rule:'Donation page URL, blank-padded to the right',extra:v=>v.trim()===''?[{sev:'err',msg:'Mandatory field is empty'}]:(v!==v.trimStart()?[{sev:'warn',msg:'Value is not left-aligned (leading spaces)'}]:[])},
+ {n:4,campo:'Data de crédito na conta',de:271,ate:278,tipo:'D',rule:'Mask DDMMAAAA',human:dateHuman},
+ {n:5,campo:'Espécie do recurso',de:279,ate:280,tipo:'N',rule:'Allowed: 01 (TED/DOC), 19 (PIX)',extra:v=>ESPECIES[v]?[]:[{sev:'err',msg:'Value not in allowed set {01, 19}'}],human:v=>ESPECIES[v]||null},
+ {n:6,campo:'Número do documento bancário',de:281,ate:303,tipo:'A',rule:'v3.0: fill with blanks TO THE RIGHT (left-aligned). All blanks if there is no info.',extra:v=>{ if(v.trim()==='') return []; if(v[0]===' ') return [{sev:'err',msg:'Right-aligned value: spec v3.0 (revision 04/07/2022) explicitly requires blank-padding to the RIGHT, i.e. value must start at position 281'}]; return []; }},
+ {n:7,campo:'Banco',de:304,ate:306,tipo:'A',rule:'Bank code, blank-padded to the LEFT',extra:v=>v.trim()===''?[{sev:'err',msg:'Mandatory field is empty'}]:[]},
+ {n:8,campo:'Agência',de:307,ate:314,tipo:'N',rule:'Zero-padded to the left. Must match the agência registered as fonte “Outros Recursos”.'},
+ {n:9,campo:'Dígito verificador da agência',de:315,ate:316,tipo:'A',rule:'Blank-padded to the left; all blanks if none'},
+ {n:10,campo:'Conta bancária',de:317,ate:334,tipo:'N',rule:'Zero-padded to the left. Must match the conta registered as fonte “Outros Recursos”.'},
+ {n:11,campo:'Dígito verificador da conta',de:335,ate:336,tipo:'A',rule:'Blank-padded to the left; all blanks if none'},
+ {n:12,campo:'Valor total arrecadado',de:337,ate:346,tipo:'V',rule:'Sum of all individual donations; last 2 digits are cents; zero-padded left',human:money,extra:(v,ctx)=>{ if(!/^\d{10}$/.test(v))return[]; if(ctx&&ctx.sumDoacoes!=null&&parseInt(v,10)!==ctx.sumDoacoes) return[{sev:'err',msg:'Does not match the sum of DETALHE 2 donation values ('+money(String(ctx.sumDoacoes).padStart(10,'0'))+')'}]; return[]; }},
+ {n:13,campo:'Valor da taxa de administração',de:347,ate:356,tipo:'V',rule:'Fee charged on the transferred amount; cents in last 2 digits',human:money},
+ {n:14,campo:'Valor do crédito na conta',de:357,ate:366,tipo:'V',rule:'Must equal Valor total arrecadado − taxa de administração',human:money,extra:(v,ctx)=>{ if(!/^\d{10}$/.test(v))return[]; if(ctx&&ctx.expectedCredito!=null&&parseInt(v,10)!==ctx.expectedCredito) return[{sev:'err',msg:'Does not equal total − taxa ('+money(String(ctx.expectedCredito).padStart(10,'0'))+')'}]; return[]; }},
+ {n:15,campo:'Total de doações individuais',de:367,ate:375,tipo:'N',rule:'Count of DETALHE 2 lines belonging to this donation (same person counted every time)',extra:(v,ctx)=>{ if(!/^\d+$/.test(v))return[]; if(ctx&&ctx.countD2!=null&&parseInt(v,10)!==ctx.countD2) return[{sev:'err',msg:'File has '+ctx.countD2+' DETALHE 2 line(s) for this donation'}]; return[]; }}]},
+'3':{name:'DETALHE 2',desc:'Doação individual (doador)',fields:[
+ {n:1,campo:'Registro',de:1,ate:1,tipo:'I',fixo:'3',rule:'Fixed “3”'},
+ {n:2,campo:'CPF',de:2,ate:12,tipo:'N',rule:'Donor CPF',extra:v=>cpfOk(v)?[]:[{sev:'warn',msg:'CPF check digits are invalid'}],human:v=>/^\d{11}$/.test(v)?v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,'$1.$2.$3-$4'):null},
+ {n:3,campo:'Nome',de:13,ate:162,tipo:'A',rule:'Donor full name, blank-padded right',extra:v=>v.trim()===''?[{sev:'err',msg:'Mandatory field is empty'}]:(v!==v.trimStart()?[{sev:'warn',msg:'Value is not left-aligned (leading spaces)'}]:[])},
+ {n:4,campo:'Data da doação',de:163,ate:170,tipo:'D',rule:'Mask DDMMAAAA',human:dateHuman},
+ {n:5,campo:'Valor da doação',de:171,ate:180,tipo:'V',rule:'Cents in last 2 digits, zero-padded left',human:money},
+ {n:6,campo:'Meio de pagamento',de:181,ate:182,tipo:'N',rule:'Allowed: 00, 01, 04, 06, 07, 08, 19',extra:v=>MEIOS[v]?[]:[{sev:'err',msg:'Value not in allowed set {00, 01, 04, 06, 07, 08, 19}'}],human:v=>MEIOS[v]||null},
+ {n:7,campo:'Espaço em branco',de:183,ate:375,tipo:'B',rule:'193 spaces'}]},
+'9':{name:'TRAILER',desc:'Fechamento do arquivo',fields:[
+ {n:1,campo:'Registro',de:1,ate:1,tipo:'I',fixo:'9',rule:'Fixed “9”'},
+ {n:2,campo:'Total de doações',de:2,ate:10,tipo:'N',rule:'Count of DETALHE 1 (registro 2) lines, zero-padded left',extra:(v,ctx)=>{ if(!/^\d+$/.test(v))return[]; if(ctx&&ctx.countD1!=null&&parseInt(v,10)!==ctx.countD1) return[{sev:'err',msg:'File has '+ctx.countD1+' DETALHE 1 line(s)'}]; return[]; }},
+ {n:3,campo:'Espaço em branco',de:11,ate:375,tipo:'B',rule:'365 spaces'}]}
+};
+const TIPO_LABEL = {I:'Identificador',N:'Numérico',A:'Alfanumérico',D:'Data',V:'Valor',B:'Branco'};
+const SEVRANK = {ok:0,info:1,warn:2,err:3};
+
+/* ---------------- Field & record validation ---------------- */
+function checkField(f, line, ctx){
+  const raw = line.slice(f.de-1, f.ate);
+  const msgs = [];
+  if(raw.length < f.ate - f.de + 1) msgs.push({sev:'err',msg:'Record is shorter than position '+f.ate});
+  switch(f.tipo){
+    case 'I': if(raw!==f.fixo) msgs.push({sev:'err',msg:'Expected fixed value “'+f.fixo+'”'}); break;
+    case 'N': if(!/^\d+$/.test(raw)) msgs.push({sev:'err',msg:'Numeric field contains non-digit characters'}); break;
+    case 'D': if(!validDate(raw)) msgs.push({sev:'err',msg:'Not a valid date in DDMMAAAA format'}); break;
+    case 'V': if(!/^\d+$/.test(raw)) msgs.push({sev:'err',msg:'Value field (10 digits, cents implied) contains non-digits'}); break;
+    case 'B': if(raw.trim()!=='') msgs.push({sev:'err',msg:'Filler must be all spaces, found content: “'+raw.trim().slice(0,30)+'”'}); break;
+    case 'A':
+      if(f.fixo!==undefined && raw!==f.fixo) msgs.push({sev:'err',msg:'Expected fixed value “'+f.fixo+'”'});
+      for(const ch of raw){ if(ch.charCodeAt(0)<32){ msgs.push({sev:'err',msg:'Contains control characters'}); break; } }
+      break;
+  }
+  if(f.extra && !msgs.some(m=>m.sev==='err')) msgs.push(...f.extra(raw, ctx));
+  const worst = msgs.reduce((a,m)=>SEVRANK[m.sev]>SEVRANK[a]?m.sev:a,'ok');
+  return {field:f, raw, msgs, status:worst};
+}
+function checkRecord(line, idx, ctx){
+  const t = line[0];
+  const layout = LAYOUTS[t];
+  const rec = {line, idx, type:t, layout, fields:[], msgs:[], status:'ok'};
+  if(line.length!==375) rec.msgs.push({sev:'err',msg:'Record length is '+line.length+' characters — spec requires exactly 375'});
+  if(!layout){ rec.msgs.push({sev:'err',msg:'Unknown record identifier “'+t+'” (valid: 1, 2, 3, 9)'}); }
+  else rec.fields = layout.fields.map(f=>checkField(f, line, ctx));
+  rec.status = [...rec.msgs, ...rec.fields.flatMap(f=>f.msgs)].reduce((a,m)=>SEVRANK[m.sev]>SEVRANK[a]?m.sev:a,'ok');
+  return rec;
+}
+
+/* ---------------- File-level validation ---------------- */
+function analyze(bytes, filename){
+  const R = {filename, fileChecks:[], findings:[], records:[], stats:{}};
+  const add = (sev,name,msg)=>R.fileChecks.push({sev,name,msg});
+  const finding = (sev,tag,title,html)=>R.findings.push({sev,tag,title,html});
+
+  // encoding: bytes are latin-1 => always decodable; flag chars >127 as info
+  let hi=0; for(const b of bytes) if(b>127) hi++;
+  const text = new TextDecoder('latin1').decode(bytes);
+
+  // line endings
+  const crlf = text.includes('\r\n');
+  const lfOnly = (text.match(/(^|[^\r])\n/g)||[]).length;
+  const rawLines = crlf ? text.split('\r\n') : text.split('\n');
+  const endsNL = /\r?\n$/.test(text);
+  const lines = endsNL ? rawLines.slice(0,-1) : rawLines;
+
+  add(hi? 'info':'ok','Encoding (ISO/IEC 8859-1)', hi? hi+' byte(s) above 0x7F — make sure they are valid ISO-8859-1 characters':'Pure ASCII — always valid ISO-8859-1');
+  add('info','Line terminator', crlf? 'CRLF (\\r\\n)':'LF (\\n)');
+  if(crlf && lfOnly>0) add('err','Mixed line endings','File mixes CRLF and bare LF');
+
+  // filename
+  const m = /^ATSEFCC(\d{3})(\d{4})(\d{2})(\d{2})(\d{6})\.FCC$/i.exec(filename||'');
+  if(!filename) add('info','Filename convention','No filename available');
+  else if(m){ add('ok','Filename convention','ATSEFCC + NNN='+m[1]+' + date='+m[4]+'/'+m[3]+'/'+m[2]+' + seq='+m[5]+' + .FCC'); }
+  else add('err','Filename convention','“'+filename+'” does not match ATSEFCCNNNAAAAMMDDSSSSSS.FCC');
+
+  // trailing newline
+  if(endsNL){ add('err','No line break after TRAILER','File ends with a line break — the spec forbids a quebra de linha on the last (TRAILER) line');
+    finding('err','error','Line break after the TRAILER line','The spec states the file <b>must not</b> end with a line break. Remove the final \\r\\n / \\n.'); }
+  else add('ok','No line break after TRAILER','Last line has no trailing line break');
+
+  // line lengths
+  const badLen = lines.map((l,i)=>[i+1,l.length]).filter(x=>x[1]!==375);
+  if(badLen.length) add('err','All records 375 characters', badLen.length+' line(s) with wrong length, e.g. line '+badLen[0][0]+' = '+badLen[0][1]+' chars');
+  else add('ok','All records 375 characters', lines.length+' lines × 375 chars');
+
+  // structure
+  const seq = lines.map(l=>l[0]||'');
+  let sOK = seq.length>=4 && seq[0]==='1' && seq[seq.length-1]==='9';
+  if(sOK){ let i=1, groups=0;
+    while(i<seq.length-1){ if(seq[i]!=='2'){sOK=false;break;} i++; let d2=0; while(i<seq.length-1 && seq[i]==='3'){d2++;i++;} if(d2===0){sOK=false;break;} groups++; }
+    if(sOK && groups===0) sOK=false;
+  }
+  add(sOK?'ok':'err','Record order','HEADER → (DETALHE 1 → DETALHE 2×n)×m → TRAILER'+(sOK?'':' — sequence violated: '+seq.slice(0,20).join('')+'…'));
+  const countD1 = seq.filter(c=>c==='2').length, countD2 = seq.filter(c=>c==='3').length;
+  add(countD2>=1?'ok':'err','Minimum one donation','File has '+countD2+' DETALHE 2 record(s)'+(countD2?'':' — at least 1 required'));
+
+  // per-record contexts (detalhe1 gets its following detalhe2 group)
+  const recs=[];
+  for(let i=0;i<lines.length;i++){
+    let ctx=null;
+    const t=lines[i][0];
+    if(t==='2'){
+      let j=i+1,sum=0,cnt=0;
+      while(j<lines.length && lines[j][0]==='3'){ const v=lines[j].slice(170,180); if(/^\d+$/.test(v)) sum+=parseInt(v,10); cnt++; j++; }
+      const vt=lines[i].slice(336,346), tx=lines[i].slice(346,356);
+      ctx={sumDoacoes:cnt?sum:null,countD2:cnt,expectedCredito:(/^\d+$/.test(vt)&&/^\d+$/.test(tx))?parseInt(vt,10)-parseInt(tx,10):null};
+    } else if(t==='9'){ ctx={countD1}; }
+    recs.push(checkRecord(lines[i], i, ctx));
+  }
+  R.records = recs;
+
+  // aggregate findings from records
+  const fieldIssues = new Map(); // key: type|fieldN|sev|msg -> {count, firstLine, sample}
+  recs.forEach(r=>{
+    r.fields.forEach(fr=>{
+      fr.msgs.forEach(mg=>{
+        const key = r.type+'|'+fr.field.n+'|'+mg.sev+'|'+mg.msg.slice(0,60);
+        if(!fieldIssues.has(key)) fieldIssues.set(key,{rec:r,fr,mg,count:0,firstLine:r.idx+1});
+        fieldIssues.get(key).count++;
+      });
+    });
+    r.msgs.forEach(mg=>{ finding(mg.sev,mg.sev==='err'?'error':mg.sev,'Line '+(r.idx+1)+': record problem',mg.msg); });
+  });
+  for(const {rec,fr,mg,count,firstLine} of fieldIssues.values()){
+    const lay = rec.layout ? rec.layout.name : '?';
+    finding(mg.sev, mg.sev==='err'?'error':mg.sev,
+      lay+' · field '+fr.field.n+' — '+fr.field.campo+(count>1?' ('+count+' lines)':' (line '+firstLine+')'),
+      mg.msg+'.<br>Value: <span class="val">'+esc(showSpaces(fr.raw).slice(0,120))+'</span> <a data-goto="'+rec.idx+'">inspect line '+firstLine+'</a>');
+  }
+  if(crlf){
+    finding('warn','suspect','CRLF line endings (\\r\\n)',
+      'The spec never states which line break to use. If the TSE validator splits on \\n only, every record reads as <b>376 characters</b> (375 + \\r) and fails the “registros maiores do que o esperado” check. If everything else looks correct, try re-saving the file with <b>LF-only</b> line endings.');
+  }
+  finding('info','external','Checks the validator runs against TSE registration data (not verifiable offline)',
+    'Even a byte-perfect file is rejected when: HEADER CNPJ ≠ the empresa arrecadadora registered with the Justiça Eleitoral; DETALHE 1 CNPJ ≠ the prestador de contas doing the import; or Agência/Conta (fields 8–11) ≠ the account registered as fonte <b>“Outros Recursos”</b> in the prestador qualification. Confirm those three on the SPCE side.');
+
+  const worst = [...R.findings.map(f=>f.sev), ...R.fileChecks.map(c=>c.sev)].reduce((a,s)=>SEVRANK[s]>SEVRANK[a]?s:a,'ok');
+  const errN = R.findings.filter(f=>f.sev==='err').length;
+  const warnN = R.findings.filter(f=>f.sev==='warn').length;
+  R.stats = {lines:lines.length, countD1, countD2, bytes:bytes.length, worst, errN, warnN,
+    recOK:recs.filter(r=>r.status==='ok').length, recWarn:recs.filter(r=>r.status==='warn').length, recErr:recs.filter(r=>r.status==='err').length};
+  R.findings.sort((a,b)=>SEVRANK[b.sev]-SEVRANK[a.sev]);
+  return R;
+}
+
+/* ---------------- Rendering ---------------- */
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function showSpaces(s){ return s.replace(/ /g,'·'); }
+function valueHTML(raw){
+  const t = raw.replace(/^( *)(.*?)( *)$/s, (_,a,mid,b)=>
+    (a?'<span class="sp">'+'·'.repeat(a.length)+'</span>':'')+esc(mid)+(b?'<span class="sp">'+'·'.repeat(b.length)+'</span>':''));
+  return t==='' ? '<span class="sp">(empty)</span>' : t;
+}
+let A=null, selected=0;
+
+function render(){
+  const s=A.stats;
+  document.getElementById('fname').textContent = A.filename || '(no filename)';
+  const v=document.getElementById('verdict');
+  const causes = A.findings.filter(f=>f.sev==='err');
+  if(s.worst==='err'){ v.className='verdict err'; v.innerHTML='<h3>'+causes.length+' layout violation'+(causes.length>1?'s':'')+' found — likely cause of “file is invalid”</h3><p>Fix the errors below, regenerate and re-upload. Warnings list additional suspects if the error alone doesn’t resolve it.</p>'; }
+  else if(s.worst==='warn'){ v.className='verdict warn'; v.innerHTML='<h3>No hard layout violation — but there are suspects</h3><p>Structure, sums and counts all match the spec. Review the warnings and the TSE-side registration checks below.</p>'; }
+  else { v.className='verdict ok'; v.innerHTML='<h3>File conforms to the ATSEFCC layout</h3><p>If the upload still fails, the cause is on the TSE registration side (see the external checks note).</p>'; }
+
+  document.getElementById('chips').innerHTML =
+    chip('info', s.lines+' lines', 'records')+
+    chip('info', (s.bytes/1024).toFixed(1)+' KB','')+
+    chip('info', s.countD1+' doação'+(s.countD1===1?'':'s'),'DETALHE 1')+
+    chip('info', s.countD2+' doadores','DETALHE 2')+
+    chip('ok', s.recOK,'records OK')+
+    (s.recWarn?chip('warn',s.recWarn,'with warnings'):'')+
+    (s.recErr?chip('err',s.recErr,'with errors'):'');
+
+  document.getElementById('findings').innerHTML = A.findings.map(f=>
+    '<div class="finding '+f.sev+'"><span class="tag">'+({err:'Error',warn:'Suspect',info:'Note',ok:'OK'})[f.sev]+'</span><div><h4>'+f.title+'</h4><p>'+f.html+'</p></div></div>'
+  ).join('') || '<div class="finding ok"><span class="tag">OK</span><div><h4>No findings</h4><p>Every field matches the layout.</p></div></div>';
+  document.querySelectorAll('#findings a[data-goto]').forEach(a=>a.addEventListener('click',()=>{ selectRec(+a.dataset.goto); document.getElementById('detail').scrollIntoView({behavior:'smooth'}); }));
+
+  document.querySelector('#filechecks tbody').innerHTML = A.fileChecks.map(c=>
+    '<tr><td><span class="pill '+c.sev+'">'+({ok:'PASS',warn:'WARN',err:'FAIL',info:'INFO'})[c.sev]+'</span></td><td>'+esc(c.name)+'</td><td>'+esc(c.msg)+'</td></tr>').join('');
+
+  renderList(); selectRec(Math.min(selected, A.records.length-1));
+}
+function chip(sev,b,label){ return '<span class="chip"><span class="dot '+sev+'"></span><b>'+b+'</b> '+label+'</span>'; }
+
+function recLabel(r){
+  if(r.type==='1') return (r.line.slice(15,115).trim()||'HEADER');
+  if(r.type==='2') return 'Doação · '+r.line.slice(1,15);
+  if(r.type==='3') return r.line.slice(12,162).trim()||r.line.slice(1,12);
+  if(r.type==='9') return 'TRAILER';
+  return '?';
+}
+function renderList(){
+  const q=document.getElementById('search').value.toLowerCase();
+  const only=document.getElementById('onlyissues').checked;
+  const box=document.getElementById('recscroll');
+  let shown=0;
+  box.innerHTML = A.records.map((r,i)=>{
+    const label=recLabel(r);
+    if(only && r.status==='ok') return '';
+    if(q && !(String(i+1)===q || label.toLowerCase().includes(q) || r.line.slice(1,15).includes(q))) return '';
+    shown++;
+    return '<button type="button" class="rec'+(i===selected?' sel':'')+'" data-i="'+i+'">'+
+      '<span class="dot '+(r.status==='ok'?'ok':r.status)+'"></span>'+
+      '<span class="ln">'+(i+1)+'</span>'+
+      '<span class="who">'+esc(label)+'</span>'+
+      '<span class="rt">'+(r.layout?r.layout.name:'?')+'</span></button>';
+  }).join('');
+  document.getElementById('countnote').textContent = shown+' of '+A.records.length+' records';
+  box.querySelectorAll('.rec').forEach(b=>b.addEventListener('click',()=>selectRec(+b.dataset.i)));
+}
+function selectRec(i){
+  selected=i;
+  document.querySelectorAll('.rec').forEach(b=>b.classList.toggle('sel',+b.dataset.i===i));
+  const r=A.records[i]; if(!r) return;
+  const d=document.getElementById('detail');
+  const total = r.line.length;
+  const map = r.fields.map((fr,fi)=>{
+    const w=((fr.field.ate-fr.field.de+1)/total*100).toFixed(3)+'%';
+    const cls = fr.field.tipo==='B'&&fr.status==='ok' ? 'blank' : (fr.status==='ok'?'ok':fr.status);
+    return '<div class="seg '+cls+'" style="width:'+w+'" title="'+esc(fr.field.campo)+' ('+fr.field.de+'–'+fr.field.ate+')" data-f="'+fi+'"></div>';
+  }).join('');
+  const rows = r.fields.map((fr,fi)=>{
+    const f=fr.field;
+    const human = f.human ? f.human(fr.raw.trim()||fr.raw) : null;
+    const msgs = fr.msgs.length? '<ul class="msgs">'+fr.msgs.map(m=>'<li class="'+(m.sev==='ok'?'okm':m.sev)+'">'+esc(m.msg)+'</li>').join('')+'</ul>' : '';
+    return '<tr id="fld-'+fi+'" class="'+(fr.status==='err'?'flag-err':fr.status==='warn'?'flag-warn':'')+'">'+
+      '<td class="num">'+f.n+'</td>'+
+      '<td class="campo">'+esc(f.campo)+'<span class="tipo">'+TIPO_LABEL[f.tipo]+(f.fixo!==undefined?' · fixo':'')+'</span></td>'+
+      '<td class="pos">'+f.de+'–'+f.ate+'<br>'+(f.ate-f.de+1)+' ch</td>'+
+      '<td><div class="value">'+valueHTML(fr.raw)+'</div>'+(human?'<div class="human">= '+esc(human)+'</div>':'')+msgs+'</td>'+
+      '<td class="rule">'+f.rule+'</td>'+
+      '<td><span class="pill '+(fr.status==='ok'?'ok':fr.status)+'">'+({ok:'OK',warn:'WARN',err:'FAIL',info:'INFO'})[fr.status]+'</span></td></tr>';
+  }).join('');
+  const recMsgs = r.msgs.length ? '<ul class="msgs">'+r.msgs.map(m=>'<li class="'+m.sev+'">'+esc(m.msg)+'</li>').join('')+'</ul>' : '';
+  d.innerHTML = '<h3>Line '+(i+1)+' — '+(r.layout?r.layout.name:'unknown record')+'</h3>'+
+    '<div class="meta">'+(r.layout?esc(r.layout.desc):'')+' · '+r.line.length+' characters'+recMsgs+'</div>'+
+    '<div class="linemap" role="presentation">'+map+'</div>'+
+    '<div class="scroll-x"><table class="fields"><thead><tr><th>#</th><th>Campo</th><th>Pos</th><th>Value in file (· = space)</th><th>Layout rule</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  d.querySelectorAll('.seg').forEach(sg=>sg.addEventListener('click',()=>{
+    const row=document.getElementById('fld-'+sg.dataset.f); if(row){row.scrollIntoView({behavior:'smooth',block:'center'});}
+  }));
+}
+
+/* ---------------- boot ---------------- */
+document.getElementById('search').addEventListener('input',renderList);
+document.getElementById('onlyissues').addEventListener('change',renderList);
+document.getElementById('loadbtn').addEventListener('click',()=>document.getElementById('fileinput').click());
+document.getElementById('pickbtn').addEventListener('click',()=>document.getElementById('fileinput').click());
+document.getElementById('fileinput').addEventListener('change',e=>{ const f=e.target.files[0]; if(f) loadFile(f); e.target.value=''; });
+
+const dz=document.getElementById('dropzone');
+['dragover','dragenter'].forEach(ev=>document.addEventListener(ev,e=>{ e.preventDefault(); dz.classList.add('drag'); }));
+['dragleave','drop'].forEach(ev=>document.addEventListener(ev,e=>{ e.preventDefault(); if(ev==='drop'||e.target===document.documentElement) dz.classList.remove('drag'); }));
+document.addEventListener('drop',e=>{ const f=e.dataTransfer && e.dataTransfer.files[0]; if(f) loadFile(f); });
+
+function loadFile(f){
+  f.arrayBuffer().then(buf=>{
+    A = analyze(new Uint8Array(buf), f.name);
+    selected = Math.max(0, A.records.findIndex(r=>r.status==='err'));
+    if(A.records.every(r=>r.status!=='err')){ const w=A.records.findIndex(r=>r.status==='warn'); selected = w>=0?w:0; }
+    document.getElementById('dropzone').hidden = true;
+    document.getElementById('report').hidden = false;
+    document.getElementById('loadbtn').hidden = false;
+    render();
+  });
+}
+</script>
+</body>
+</html>
