@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FCC Validator</title>
-<meta name="description" content="Client-side validator for TSE SPCE ATSEFCC (.FCC) crowdfunding donation files — checks every field against the layout spec v3.0 (07/2022).">
+<meta name="description" content="Verificador de arquivos ATSEFCC (.FCC) de Financiamento Coletivo de Campanha do TSE. O navegador processa o arquivo localmente e confere cada campo contra o layout v3.0 (07/2022).">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗳️</text></svg>">
 <style>
 html,body{min-height:100%}
@@ -128,38 +128,38 @@ footer p{margin:4px 0}
 <div class="wrap">
 <header class="top">
   <h1>FCC Validator</h1>
-  <span class="sub">TSE · SPCE Financiamento Coletivo · layout v3.0 (07/2022)</span>
+  <span class="sub">TSE · Financiamento Coletivo de Campanha · layout v3.0 (07/2022)</span>
   <span class="spacer"></span>
   <span class="filename" id="fname"></span>
-  <button class="filebtn" id="loadbtn" type="button" hidden>Validate another .FCC…</button>
+  <button class="filebtn" id="loadbtn" type="button" hidden>Verificar outro arquivo .FCC…</button>
   <input type="file" id="fileinput" accept=".FCC,.fcc,.txt" hidden>
 </header>
 
 <section class="dropzone" id="dropzone">
-  <h2 class="dz-title">Drop an ATSEFCC file here</h2>
-  <p>…or <button class="filebtn" id="pickbtn" type="button">choose a .FCC file</button></p>
-  <p class="dz-note">Everything runs in your browser — the file is never uploaded anywhere. Each record is checked field by field against the TSE layout: positions, types, fixed values, padding rules, dates, allowed codes, CPF/CNPJ check digits, record order, sums and totals.</p>
+  <h2 class="dz-title">Solte um arquivo ATSEFCC aqui</h2>
+  <p>…ou <button class="filebtn" id="pickbtn" type="button">selecione um arquivo .FCC</button></p>
+  <p class="dz-note">O navegador processa o arquivo localmente. A página não envia o arquivo para nenhum servidor. O verificador confere cada campo de cada registro contra o layout do TSE: posição, tamanho, tipo, valor fixo, preenchimento, data, código permitido, dígito verificador de CPF e de CNPJ, ordem dos registros e totais.</p>
 </section>
 
 <main id="report" hidden>
 <div id="verdict"></div>
 <div class="chips" id="chips"></div>
 
-<h2>Findings</h2>
+<h2>Ocorrências</h2>
 <div class="findings" id="findings"></div>
 
-<h2>File-level checks</h2>
+<h2>Verificações do arquivo</h2>
 <div class="scroll-x"><table class="checks" id="filechecks">
-  <thead><tr><th style="width:110px">Status</th><th style="width:280px">Check</th><th>Result</th></tr></thead>
+  <thead><tr><th style="width:110px">Status</th><th style="width:280px">Verificação</th><th>Resultado</th></tr></thead>
   <tbody></tbody>
 </table></div>
 
-<h2>Record explorer — field vs. layout</h2>
+<h2>Explorador de registros — campo a campo</h2>
 <div class="explorer">
   <div class="reclist">
     <div class="tools">
-      <input type="search" id="search" placeholder="Search line, CPF, name…" aria-label="Search records">
-      <label class="only"><input type="checkbox" id="onlyissues"> issues</label>
+      <input type="search" id="search" placeholder="Busque por linha, CPF ou nome…" aria-label="Buscar registros">
+      <label class="only"><input type="checkbox" id="onlyissues"> só ocorrências</label>
     </div>
     <div class="recscroll" id="recscroll"></div>
     <div class="count-note" id="countnote"></div>
@@ -170,8 +170,8 @@ footer p{margin:4px 0}
 </main>
 
 <footer>
-  <p>Layout source: TSE — <i>Especificação de Layout de Arquivo, SPCE Financiamento Coletivo</i>, versão 3.0 (04/07/2022). Every record must be exactly 375 characters; encoding ISO/IEC 8859-1; no line break after the TRAILER line.</p>
-  <p>Checks marked “unverifiable” depend on TSE registration data (CNPJ da arrecadadora, CNPJ do prestador, agência/conta da fonte “Outros Recursos”) and cannot be validated offline.</p>
+  <p>Fonte do layout: TSE — <i>Especificação de Layout de Arquivo, Financiamento Coletivo de Campanha</i>, versão 3.0, de 2022-07-04, reeditada em julho de 2026 para o sistema Conta+JE. Cada registro tem exatamente 375 caracteres. A codificação é ISO/IEC 8859-1. A linha TRAILER não termina com quebra de linha.</p>
+  <p>As verificações marcadas como “externas” dependem de cadastros do TSE: CNPJ da empresa arrecadadora, CNPJ do prestador de contas, e agência e conta da fonte “Outros Recursos”. Esta página não tem acesso a esses cadastros.</p>
 </footer>
 </div>
 
@@ -182,7 +182,8 @@ const MEIOS = {'00':'Cheque','01':'Transferência eletrônica','04':'Depósito i
 const ESPECIES = {'01':'Transferência eletrônica (TED/DOC)','19':'PIX'};
 
 function money(v){ if(!/^\d+$/.test(v)) return null; const n=parseInt(v,10); return 'R$ '+(n/100).toLocaleString('pt-BR',{minimumFractionDigits:2}); }
-function dateHuman(v){ if(!/^\d{8}$/.test(v)) return null; return v.slice(0,2)+'/'+v.slice(2,4)+'/'+v.slice(4,8); }
+const MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+function dateHuman(v){ if(!/^\d{8}$/.test(v)) return null; const m=+v.slice(2,4); if(m<1||m>12) return null; return (+v.slice(0,2))+' de '+MESES[m-1]+' de '+v.slice(4,8); }
 function validDate(v){ if(!/^\d{8}$/.test(v)) return false; const d=+v.slice(0,2),m=+v.slice(2,4),y=+v.slice(4,8); if(y<2000||m<1||m>12||d<1)return false; const dim=new Date(y,m,0).getDate(); return d<=dim; }
 function cpfOk(c){ if(!/^\d{11}$/.test(c)||/^(\d)\1{10}$/.test(c))return false; for(const n of[9,10]){let s=0;for(let i=0;i<n;i++)s+=+c[i]*(n+1-i); if(((s*10)%11)%10!==+c[n])return false;} return true; }
 function cnpjOk(c){ if(!/^\d{14}$/.test(c))return false; const w1=[5,4,3,2,9,8,7,6,5,4,3,2],w2=[6].concat(w1); for(const[n,w]of[[12,w1],[13,w2]]){let s=0;for(let i=0;i<n;i++)s+=+c[i]*w[i]; const d=s%11<2?0:11-s%11; if(d!==+c[n])return false;} return true; }
@@ -190,40 +191,40 @@ function cnpjOk(c){ if(!/^\d{14}$/.test(c))return false; const w1=[5,4,3,2,9,8,7
 /* Each field: n, campo, de, ate, tipo, fixo?, rule (text), extra(value, ctx) -> [{sev,msg}] */
 const LAYOUTS = {
 '1':{name:'HEADER',desc:'Identificação da empresa arrecadadora',fields:[
- {n:1,campo:'Registro',de:1,ate:1,tipo:'I',fixo:'1',rule:'Fixed “1”'},
- {n:2,campo:'CNPJ',de:2,ate:15,tipo:'N',rule:'CNPJ of the collecting company (empresa arrecadadora)',extra:v=>cnpjOk(v)?[]:[{sev:'warn',msg:'CNPJ check digits are invalid'}],human:v=>/^\d{14}$/.test(v)?v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,'$1.$2.$3/$4-$5'):null},
- {n:3,campo:'Nome Fantasia',de:16,ate:115,tipo:'A',rule:'Blank-padded to the right',extra:v=>v.trim()===''?[{sev:'err',msg:'Mandatory field is empty'}]:(v!==v.trimStart()?[{sev:'warn',msg:'Value is not left-aligned (leading spaces)'}]:[])},
- {n:4,campo:'Versão layout',de:116,ate:118,tipo:'N',fixo:'100',rule:'Fixed “100”'},
- {n:5,campo:'Nome layout',de:119,ate:125,tipo:'A',fixo:'ATSEFCC',rule:'Fixed “ATSEFCC”'},
- {n:6,campo:'Espaço em branco',de:126,ate:375,tipo:'B',rule:'250 spaces'}]},
-'2':{name:'DETALHE 1',desc:'Doação repassada ao candidato / partido',fields:[
- {n:1,campo:'Registro',de:1,ate:1,tipo:'I',fixo:'2',rule:'Fixed “2”'},
- {n:2,campo:'CNPJ',de:2,ate:15,tipo:'N',rule:'CNPJ of the beneficiary (candidato/partido). Must match the prestador de contas importing the file.',extra:v=>cnpjOk(v)?[]:[{sev:'warn',msg:'CNPJ check digits are invalid'}],human:v=>/^\d{14}$/.test(v)?v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,'$1.$2.$3/$4-$5'):null},
- {n:3,campo:'Página Web',de:16,ate:270,tipo:'A',rule:'Donation page URL, blank-padded to the right',extra:v=>v.trim()===''?[{sev:'err',msg:'Mandatory field is empty'}]:(v!==v.trimStart()?[{sev:'warn',msg:'Value is not left-aligned (leading spaces)'}]:[])},
- {n:4,campo:'Data de crédito na conta',de:271,ate:278,tipo:'D',rule:'Mask DDMMAAAA',human:dateHuman},
- {n:5,campo:'Espécie do recurso',de:279,ate:280,tipo:'N',rule:'Allowed: 01 (TED/DOC), 19 (PIX)',extra:v=>ESPECIES[v]?[]:[{sev:'err',msg:'Value not in allowed set {01, 19}'}],human:v=>ESPECIES[v]||null},
- {n:6,campo:'Número do documento bancário',de:281,ate:303,tipo:'A',rule:'v3.0: fill with blanks TO THE RIGHT (left-aligned). All blanks if there is no info.',extra:v=>{ if(v.trim()==='') return []; if(v[0]===' ') return [{sev:'err',msg:'Right-aligned value: spec v3.0 (revision 04/07/2022) explicitly requires blank-padding to the RIGHT, i.e. value must start at position 281'}]; return []; }},
- {n:7,campo:'Banco',de:304,ate:306,tipo:'A',rule:'Bank code, blank-padded to the LEFT',extra:v=>v.trim()===''?[{sev:'err',msg:'Mandatory field is empty'}]:[]},
- {n:8,campo:'Agência',de:307,ate:314,tipo:'N',rule:'Zero-padded to the left. Must match the agência registered as fonte “Outros Recursos”.'},
- {n:9,campo:'Dígito verificador da agência',de:315,ate:316,tipo:'A',rule:'Blank-padded to the left; all blanks if none'},
- {n:10,campo:'Conta bancária',de:317,ate:334,tipo:'N',rule:'Zero-padded to the left. Must match the conta registered as fonte “Outros Recursos”.'},
- {n:11,campo:'Dígito verificador da conta',de:335,ate:336,tipo:'A',rule:'Blank-padded to the left; all blanks if none'},
- {n:12,campo:'Valor total arrecadado',de:337,ate:346,tipo:'V',rule:'Sum of all individual donations; last 2 digits are cents; zero-padded left',human:money,extra:(v,ctx)=>{ if(!/^\d{10}$/.test(v))return[]; if(ctx&&ctx.sumDoacoes!=null&&parseInt(v,10)!==ctx.sumDoacoes) return[{sev:'err',msg:'Does not match the sum of DETALHE 2 donation values ('+money(String(ctx.sumDoacoes).padStart(10,'0'))+')'}]; return[]; }},
- {n:13,campo:'Valor da taxa de administração',de:347,ate:356,tipo:'V',rule:'Fee charged on the transferred amount; cents in last 2 digits',human:money},
- {n:14,campo:'Valor do crédito na conta',de:357,ate:366,tipo:'V',rule:'Must equal Valor total arrecadado − taxa de administração',human:money,extra:(v,ctx)=>{ if(!/^\d{10}$/.test(v))return[]; if(ctx&&ctx.expectedCredito!=null&&parseInt(v,10)!==ctx.expectedCredito) return[{sev:'err',msg:'Does not equal total − taxa ('+money(String(ctx.expectedCredito).padStart(10,'0'))+')'}]; return[]; }},
- {n:15,campo:'Total de doações individuais',de:367,ate:375,tipo:'N',rule:'Count of DETALHE 2 lines belonging to this donation (same person counted every time)',extra:(v,ctx)=>{ if(!/^\d+$/.test(v))return[]; if(ctx&&ctx.countD2!=null&&parseInt(v,10)!==ctx.countD2) return[{sev:'err',msg:'File has '+ctx.countD2+' DETALHE 2 line(s) for this donation'}]; return[]; }}]},
+ {n:1,campo:'Registro',de:1,ate:1,tipo:'I',fixo:'1',rule:'Fixo “1”'},
+ {n:2,campo:'CNPJ',de:2,ate:15,tipo:'N',rule:'CNPJ da empresa arrecadadora (empresa que capta os recursos)',extra:v=>cnpjOk(v)?[]:[{sev:'warn',msg:'Os dígitos verificadores do CNPJ são inválidos'}],human:v=>/^\d{14}$/.test(v)?v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,'$1.$2.$3/$4-$5'):null},
+ {n:3,campo:'Nome Fantasia',de:16,ate:115,tipo:'A',rule:'Espaços em branco à direita completam o campo',extra:v=>v.trim()===''?[{sev:'err',msg:'O campo obrigatório está vazio'}]:(v!==v.trimStart()?[{sev:'warn',msg:'O valor não está alinhado à esquerda: há espaços antes do conteúdo'}]:[])},
+ {n:4,campo:'Versão layout',de:116,ate:118,tipo:'N',fixo:'100',rule:'Fixo “100”'},
+ {n:5,campo:'Nome layout',de:119,ate:125,tipo:'A',fixo:'ATSEFCC',rule:'Fixo “ATSEFCC”'},
+ {n:6,campo:'Espaço em branco',de:126,ate:375,tipo:'B',rule:'250 espaços em branco'}]},
+'2':{name:'DETALHE 1',desc:'Doação que a empresa arrecadadora repassa ao candidato ou partido',fields:[
+ {n:1,campo:'Registro',de:1,ate:1,tipo:'I',fixo:'2',rule:'Fixo “2”'},
+ {n:2,campo:'CNPJ',de:2,ate:15,tipo:'N',rule:'CNPJ do beneficiário (candidato ou partido). O CNPJ deve ser igual ao CNPJ do prestador de contas que importa o arquivo.',extra:v=>cnpjOk(v)?[]:[{sev:'warn',msg:'Os dígitos verificadores do CNPJ são inválidos'}],human:v=>/^\d{14}$/.test(v)?v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,'$1.$2.$3/$4-$5'):null},
+ {n:3,campo:'Página Web',de:16,ate:270,tipo:'A',rule:'URL da página da doação. Espaços em branco à direita completam o campo.',extra:v=>v.trim()===''?[{sev:'err',msg:'O campo obrigatório está vazio'}]:(v!==v.trimStart()?[{sev:'warn',msg:'O valor não está alinhado à esquerda: há espaços antes do conteúdo'}]:[])},
+ {n:4,campo:'Data de crédito na conta',de:271,ate:278,tipo:'D',rule:'Máscara DDMMAAAA',human:dateHuman},
+ {n:5,campo:'Espécie do recurso',de:279,ate:280,tipo:'N',rule:'Valores permitidos: 01 (TED/DOC) e 19 (PIX)',extra:v=>ESPECIES[v]?[]:[{sev:'err',msg:'O valor não pertence ao conjunto permitido {01, 19}'}],human:v=>ESPECIES[v]||null},
+ {n:6,campo:'Número do documento bancário',de:281,ate:303,tipo:'A',rule:'v3.0: espaços em branco à DIREITA completam o campo (valor alinhado à esquerda). Sem informação, o campo inteiro fica em branco.',extra:v=>{ if(v.trim()==='') return []; if(v[0]===' ') return [{sev:'err',msg:'O valor está alinhado à direita. A versão 3.0 do layout (revisão de 2022-07-04) exige espaços em branco à direita: o valor deve começar na posição 281'}]; return []; }},
+ {n:7,campo:'Banco',de:304,ate:306,tipo:'A',rule:'Código do banco. Espaços em branco à ESQUERDA completam o campo.',extra:v=>v.trim()===''?[{sev:'err',msg:'O campo obrigatório está vazio'}]:[]},
+ {n:8,campo:'Agência',de:307,ate:314,tipo:'N',rule:'Zeros à esquerda completam o campo. A agência deve ser igual à agência cadastrada como fonte “Outros Recursos”.'},
+ {n:9,campo:'Dígito verificador da agência',de:315,ate:316,tipo:'A',rule:'Espaços em branco à esquerda completam o campo. Sem informação, o campo inteiro fica em branco.'},
+ {n:10,campo:'Conta bancária',de:317,ate:334,tipo:'N',rule:'Zeros à esquerda completam o campo. A conta deve ser igual à conta cadastrada como fonte “Outros Recursos”.'},
+ {n:11,campo:'Dígito verificador da conta',de:335,ate:336,tipo:'A',rule:'Espaços em branco à esquerda completam o campo. Sem informação, o campo inteiro fica em branco.'},
+ {n:12,campo:'Valor total arrecadado',de:337,ate:346,tipo:'V',rule:'Soma de todas as doações individuais. Os 2 últimos dígitos são os centavos. Zeros à esquerda completam o campo.',human:money,extra:(v,ctx)=>{ if(!/^\d{10}$/.test(v))return[]; if(ctx&&ctx.sumDoacoes!=null&&parseInt(v,10)!==ctx.sumDoacoes) return[{sev:'err',msg:'O valor difere da soma dos valores de doação do DETALHE 2 ('+money(String(ctx.sumDoacoes).padStart(10,'0'))+')'}]; return[]; }},
+ {n:13,campo:'Valor da taxa de administração',de:347,ate:356,tipo:'V',rule:'Taxa de administração sobre o montante transferido. Os 2 últimos dígitos são os centavos.',human:money},
+ {n:14,campo:'Valor do crédito na conta',de:357,ate:366,tipo:'V',rule:'O valor deve ser igual a: valor total arrecadado − taxa de administração',human:money,extra:(v,ctx)=>{ if(!/^\d{10}$/.test(v))return[]; if(ctx&&ctx.expectedCredito!=null&&parseInt(v,10)!==ctx.expectedCredito) return[{sev:'err',msg:'O valor difere de: total − taxa ('+money(String(ctx.expectedCredito).padStart(10,'0'))+')'}]; return[]; }},
+ {n:15,campo:'Total de doações individuais',de:367,ate:375,tipo:'N',rule:'Quantidade de linhas DETALHE 2 desta doação. Uma pessoa com mais de uma doação conta todas as vezes.',extra:(v,ctx)=>{ if(!/^\d+$/.test(v))return[]; if(ctx&&ctx.countD2!=null&&parseInt(v,10)!==ctx.countD2) return[{sev:'err',msg:'O arquivo tem '+ctx.countD2+' linha(s) DETALHE 2 para esta doação'}]; return[]; }}]},
 '3':{name:'DETALHE 2',desc:'Doação individual (doador)',fields:[
- {n:1,campo:'Registro',de:1,ate:1,tipo:'I',fixo:'3',rule:'Fixed “3”'},
- {n:2,campo:'CPF',de:2,ate:12,tipo:'N',rule:'Donor CPF',extra:v=>cpfOk(v)?[]:[{sev:'warn',msg:'CPF check digits are invalid'}],human:v=>/^\d{11}$/.test(v)?v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,'$1.$2.$3-$4'):null},
- {n:3,campo:'Nome',de:13,ate:162,tipo:'A',rule:'Donor full name, blank-padded right',extra:v=>v.trim()===''?[{sev:'err',msg:'Mandatory field is empty'}]:(v!==v.trimStart()?[{sev:'warn',msg:'Value is not left-aligned (leading spaces)'}]:[])},
- {n:4,campo:'Data da doação',de:163,ate:170,tipo:'D',rule:'Mask DDMMAAAA',human:dateHuman},
- {n:5,campo:'Valor da doação',de:171,ate:180,tipo:'V',rule:'Cents in last 2 digits, zero-padded left',human:money},
- {n:6,campo:'Meio de pagamento',de:181,ate:182,tipo:'N',rule:'Allowed: 00, 01, 04, 06, 07, 08, 19',extra:v=>MEIOS[v]?[]:[{sev:'err',msg:'Value not in allowed set {00, 01, 04, 06, 07, 08, 19}'}],human:v=>MEIOS[v]||null},
- {n:7,campo:'Espaço em branco',de:183,ate:375,tipo:'B',rule:'193 spaces'}]},
+ {n:1,campo:'Registro',de:1,ate:1,tipo:'I',fixo:'3',rule:'Fixo “3”'},
+ {n:2,campo:'CPF',de:2,ate:12,tipo:'N',rule:'CPF do doador',extra:v=>cpfOk(v)?[]:[{sev:'warn',msg:'Os dígitos verificadores do CPF são inválidos'}],human:v=>/^\d{11}$/.test(v)?v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,'$1.$2.$3-$4'):null},
+ {n:3,campo:'Nome',de:13,ate:162,tipo:'A',rule:'Nome completo do doador. Espaços em branco à direita completam o campo.',extra:v=>v.trim()===''?[{sev:'err',msg:'O campo obrigatório está vazio'}]:(v!==v.trimStart()?[{sev:'warn',msg:'O valor não está alinhado à esquerda: há espaços antes do conteúdo'}]:[])},
+ {n:4,campo:'Data da doação',de:163,ate:170,tipo:'D',rule:'Máscara DDMMAAAA',human:dateHuman},
+ {n:5,campo:'Valor da doação',de:171,ate:180,tipo:'V',rule:'Os 2 últimos dígitos são os centavos. Zeros à esquerda completam o campo.',human:money},
+ {n:6,campo:'Meio de pagamento',de:181,ate:182,tipo:'N',rule:'Valores permitidos: 00, 01, 04, 06, 07, 08 e 19',extra:v=>MEIOS[v]?[]:[{sev:'err',msg:'O valor não pertence ao conjunto permitido {00, 01, 04, 06, 07, 08, 19}'}],human:v=>MEIOS[v]||null},
+ {n:7,campo:'Espaço em branco',de:183,ate:375,tipo:'B',rule:'193 espaços em branco'}]},
 '9':{name:'TRAILER',desc:'Fechamento do arquivo',fields:[
- {n:1,campo:'Registro',de:1,ate:1,tipo:'I',fixo:'9',rule:'Fixed “9”'},
- {n:2,campo:'Total de doações',de:2,ate:10,tipo:'N',rule:'Count of DETALHE 1 (registro 2) lines, zero-padded left',extra:(v,ctx)=>{ if(!/^\d+$/.test(v))return[]; if(ctx&&ctx.countD1!=null&&parseInt(v,10)!==ctx.countD1) return[{sev:'err',msg:'File has '+ctx.countD1+' DETALHE 1 line(s)'}]; return[]; }},
- {n:3,campo:'Espaço em branco',de:11,ate:375,tipo:'B',rule:'365 spaces'}]}
+ {n:1,campo:'Registro',de:1,ate:1,tipo:'I',fixo:'9',rule:'Fixo “9”'},
+ {n:2,campo:'Total de doações',de:2,ate:10,tipo:'N',rule:'Quantidade de linhas DETALHE 1 (registro 2). Zeros à esquerda completam o campo.',extra:(v,ctx)=>{ if(!/^\d+$/.test(v))return[]; if(ctx&&ctx.countD1!=null&&parseInt(v,10)!==ctx.countD1) return[{sev:'err',msg:'O arquivo tem '+ctx.countD1+' linha(s) DETALHE 1'}]; return[]; }},
+ {n:3,campo:'Espaço em branco',de:11,ate:375,tipo:'B',rule:'365 espaços em branco'}]}
 };
 const TIPO_LABEL = {I:'Identificador',N:'Numérico',A:'Alfanumérico',D:'Data',V:'Valor',B:'Branco'};
 const SEVRANK = {ok:0,info:1,warn:2,err:3};
@@ -232,16 +233,16 @@ const SEVRANK = {ok:0,info:1,warn:2,err:3};
 function checkField(f, line, ctx){
   const raw = line.slice(f.de-1, f.ate);
   const msgs = [];
-  if(raw.length < f.ate - f.de + 1) msgs.push({sev:'err',msg:'Record is shorter than position '+f.ate});
+  if(raw.length < f.ate - f.de + 1) msgs.push({sev:'err',msg:'O registro termina antes da posição '+f.ate});
   switch(f.tipo){
-    case 'I': if(raw!==f.fixo) msgs.push({sev:'err',msg:'Expected fixed value “'+f.fixo+'”'}); break;
-    case 'N': if(!/^\d+$/.test(raw)) msgs.push({sev:'err',msg:'Numeric field contains non-digit characters'}); break;
-    case 'D': if(!validDate(raw)) msgs.push({sev:'err',msg:'Not a valid date in DDMMAAAA format'}); break;
-    case 'V': if(!/^\d+$/.test(raw)) msgs.push({sev:'err',msg:'Value field (10 digits, cents implied) contains non-digits'}); break;
-    case 'B': if(raw.trim()!=='') msgs.push({sev:'err',msg:'Filler must be all spaces, found content: “'+raw.trim().slice(0,30)+'”'}); break;
+    case 'I': if(raw!==f.fixo) msgs.push({sev:'err',msg:'O valor esperado é o valor fixo “'+f.fixo+'”'}); break;
+    case 'N': if(!/^\d+$/.test(raw)) msgs.push({sev:'err',msg:'O campo numérico contém caracteres que não são dígitos'}); break;
+    case 'D': if(!validDate(raw)) msgs.push({sev:'err',msg:'O valor não é uma data válida na máscara DDMMAAAA'}); break;
+    case 'V': if(!/^\d+$/.test(raw)) msgs.push({sev:'err',msg:'O campo de valor (10 dígitos, centavos implícitos) contém caracteres que não são dígitos'}); break;
+    case 'B': if(raw.trim()!=='') msgs.push({sev:'err',msg:'O campo de espaços em branco contém conteúdo: “'+raw.trim().slice(0,30)+'”'}); break;
     case 'A':
-      if(f.fixo!==undefined && raw!==f.fixo) msgs.push({sev:'err',msg:'Expected fixed value “'+f.fixo+'”'});
-      for(const ch of raw){ if(ch.charCodeAt(0)<32){ msgs.push({sev:'err',msg:'Contains control characters'}); break; } }
+      if(f.fixo!==undefined && raw!==f.fixo) msgs.push({sev:'err',msg:'O valor esperado é o valor fixo “'+f.fixo+'”'});
+      for(const ch of raw){ if(ch.charCodeAt(0)<32){ msgs.push({sev:'err',msg:'O valor contém caracteres de controle'}); break; } }
       break;
   }
   if(f.extra && !msgs.some(m=>m.sev==='err')) msgs.push(...f.extra(raw, ctx));
@@ -252,8 +253,8 @@ function checkRecord(line, idx, ctx){
   const t = line[0];
   const layout = LAYOUTS[t];
   const rec = {line, idx, type:t, layout, fields:[], msgs:[], status:'ok'};
-  if(line.length!==375) rec.msgs.push({sev:'err',msg:'Record length is '+line.length+' characters — spec requires exactly 375'});
-  if(!layout){ rec.msgs.push({sev:'err',msg:'Unknown record identifier “'+t+'” (valid: 1, 2, 3, 9)'}); }
+  if(line.length!==375) rec.msgs.push({sev:'err',msg:'O registro tem '+line.length+' caracteres. O layout exige exatamente 375.'});
+  if(!layout){ rec.msgs.push({sev:'err',msg:'O identificador de registro “'+t+'” é desconhecido. Os valores válidos são 1, 2, 3 e 9.'}); }
   else rec.fields = layout.fields.map(f=>checkField(f, line, ctx));
   rec.status = [...rec.msgs, ...rec.fields.flatMap(f=>f.msgs)].reduce((a,m)=>SEVRANK[m.sev]>SEVRANK[a]?m.sev:a,'ok');
   return rec;
@@ -276,25 +277,25 @@ function analyze(bytes, filename){
   const endsNL = /\r?\n$/.test(text);
   const lines = endsNL ? rawLines.slice(0,-1) : rawLines;
 
-  add(hi? 'info':'ok','Encoding (ISO/IEC 8859-1)', hi? hi+' byte(s) above 0x7F — make sure they are valid ISO-8859-1 characters':'Pure ASCII — always valid ISO-8859-1');
-  add('info','Line terminator', crlf? 'CRLF (\\r\\n)':'LF (\\n)');
-  if(crlf && lfOnly>0) add('err','Mixed line endings','File mixes CRLF and bare LF');
+  add(hi? 'info':'ok','Codificação (ISO/IEC 8859-1)', hi? 'O arquivo tem '+hi+' byte(s) acima de 0x7F. Confirme que cada um é um caractere ISO-8859-1 válido.':'O arquivo é ASCII puro. ASCII puro é sempre ISO-8859-1 válido.');
+  add('info','Terminador de linha', crlf? 'CRLF (\\r\\n)':'LF (\\n)');
+  if(crlf && lfOnly>0) add('err','Terminadores de linha mistos','O arquivo mistura CRLF e LF');
 
   // filename
   const m = /^ATSEFCC(\d{3})(\d{4})(\d{2})(\d{2})(\d{6})\.FCC$/i.exec(filename||'');
-  if(!filename) add('info','Filename convention','No filename available');
-  else if(m){ add('ok','Filename convention','ATSEFCC + NNN='+m[1]+' + date='+m[4]+'/'+m[3]+'/'+m[2]+' + seq='+m[5]+' + .FCC'); }
-  else add('err','Filename convention','“'+filename+'” does not match ATSEFCCNNNAAAAMMDDSSSSSS.FCC');
+  if(!filename) add('info','Nomenclatura do arquivo','Nenhum nome de arquivo disponível');
+  else if(m){ add('ok','Nomenclatura do arquivo','ATSEFCC + NNN='+m[1]+' + data='+m[2]+'-'+m[3]+'-'+m[4]+' + seq='+m[5]+' + .FCC'); }
+  else add('err','Nomenclatura do arquivo','O nome “'+filename+'” não segue o padrão ATSEFCCNNNAAAAMMDDSSSSSS.FCC');
 
   // trailing newline
-  if(endsNL){ add('err','No line break after TRAILER','File ends with a line break — the spec forbids a quebra de linha on the last (TRAILER) line');
-    finding('err','error','Line break after the TRAILER line','The spec states the file <b>must not</b> end with a line break. Remove the final \\r\\n / \\n.'); }
-  else add('ok','No line break after TRAILER','Last line has no trailing line break');
+  if(endsNL){ add('err','Sem quebra de linha após o TRAILER','O arquivo termina com quebra de linha. O layout proíbe quebra de linha na última linha (TRAILER).');
+    finding('err','error','Quebra de linha após a linha TRAILER','O layout proíbe quebra de linha na última linha. Remova o \\r\\n (ou \\n) final.'); }
+  else add('ok','Sem quebra de linha após o TRAILER','A última linha não termina com quebra de linha');
 
   // line lengths
   const badLen = lines.map((l,i)=>[i+1,l.length]).filter(x=>x[1]!==375);
-  if(badLen.length) add('err','All records 375 characters', badLen.length+' line(s) with wrong length, e.g. line '+badLen[0][0]+' = '+badLen[0][1]+' chars');
-  else add('ok','All records 375 characters', lines.length+' lines × 375 chars');
+  if(badLen.length) add('err','Todos os registros com 375 caracteres', 'O arquivo tem '+badLen.length+' linha(s) com tamanho errado. Exemplo: a linha '+badLen[0][0]+' tem '+badLen[0][1]+' caracteres.');
+  else add('ok','Todos os registros com 375 caracteres', lines.length+' linhas × 375 caracteres');
 
   // structure
   const seq = lines.map(l=>l[0]||'');
@@ -303,9 +304,9 @@ function analyze(bytes, filename){
     while(i<seq.length-1){ if(seq[i]!=='2'){sOK=false;break;} i++; let d2=0; while(i<seq.length-1 && seq[i]==='3'){d2++;i++;} if(d2===0){sOK=false;break;} groups++; }
     if(sOK && groups===0) sOK=false;
   }
-  add(sOK?'ok':'err','Record order','HEADER → (DETALHE 1 → DETALHE 2×n)×m → TRAILER'+(sOK?'':' — sequence violated: '+seq.slice(0,20).join('')+'…'));
+  add(sOK?'ok':'err','Ordem dos registros','HEADER → (DETALHE 1 → DETALHE 2×n)×m → TRAILER'+(sOK?'':' — a sequência do arquivo viola essa ordem: '+seq.slice(0,20).join('')+'…'));
   const countD1 = seq.filter(c=>c==='2').length, countD2 = seq.filter(c=>c==='3').length;
-  add(countD2>=1?'ok':'err','Minimum one donation','File has '+countD2+' DETALHE 2 record(s)'+(countD2?'':' — at least 1 required'));
+  add(countD2>=1?'ok':'err','Mínimo de uma doação','O arquivo tem '+countD2+' registro(s) DETALHE 2'+(countD2?'':'. O layout exige no mínimo 1.'));
 
   // per-record contexts (detalhe1 gets its following detalhe2 group)
   const recs=[];
@@ -332,20 +333,20 @@ function analyze(bytes, filename){
         fieldIssues.get(key).count++;
       });
     });
-    r.msgs.forEach(mg=>{ finding(mg.sev,mg.sev==='err'?'error':mg.sev,'Line '+(r.idx+1)+': record problem',mg.msg); });
+    r.msgs.forEach(mg=>{ finding(mg.sev,mg.sev==='err'?'error':mg.sev,'Linha '+(r.idx+1)+': problema no registro',mg.msg); });
   });
   for(const {rec,fr,mg,count,firstLine} of fieldIssues.values()){
     const lay = rec.layout ? rec.layout.name : '?';
     finding(mg.sev, mg.sev==='err'?'error':mg.sev,
-      lay+' · field '+fr.field.n+' — '+fr.field.campo+(count>1?' ('+count+' lines)':' (line '+firstLine+')'),
-      mg.msg+'.<br>Value: <span class="val">'+esc(showSpaces(fr.raw).slice(0,120))+'</span> <a data-goto="'+rec.idx+'">inspect line '+firstLine+'</a>');
+      lay+' · campo '+fr.field.n+' — '+fr.field.campo+(count>1?' ('+count+' linhas)':' (linha '+firstLine+')'),
+      mg.msg+'.<br>Valor: <span class="val">'+esc(showSpaces(fr.raw).slice(0,120))+'</span> <a data-goto="'+rec.idx+'">abrir a linha '+firstLine+'</a>');
   }
   if(crlf){
-    finding('warn','suspect','CRLF line endings (\\r\\n)',
-      'The spec never states which line break to use. If the TSE validator splits on \\n only, every record reads as <b>376 characters</b> (375 + \\r) and fails the “registros maiores do que o esperado” check. If everything else looks correct, try re-saving the file with <b>LF-only</b> line endings.');
+    finding('warn','suspeita','Terminadores de linha CRLF (\\r\\n)',
+      'O layout não define qual quebra de linha usar. Se o validador do TSE divide o arquivo somente por \\n, cada registro fica com <b>376 caracteres</b> (375 + \\r) e falha na verificação “registros maiores do que o esperado”. Se o restante do arquivo está correto, gere o arquivo novamente com quebras de linha <b>somente LF</b>.');
   }
-  finding('info','external','Checks the validator runs against TSE registration data (not verifiable offline)',
-    'Even a byte-perfect file is rejected when: HEADER CNPJ ≠ the empresa arrecadadora registered with the Justiça Eleitoral; DETALHE 1 CNPJ ≠ the prestador de contas doing the import; or Agência/Conta (fields 8–11) ≠ the account registered as fonte <b>“Outros Recursos”</b> in the prestador qualification. Confirm those three on the SPCE side.');
+  finding('info','externa','Verificações que dependem de cadastros do TSE (fora do alcance desta página)',
+    'Um arquivo correto byte a byte ainda é rejeitado quando: o CNPJ do HEADER difere do CNPJ da empresa arrecadadora com cadastro validado pela Justiça Eleitoral; o CNPJ do DETALHE 1 difere do CNPJ do prestador de contas que importa o arquivo; ou a agência e a conta (campos 8 a 11) diferem da conta cadastrada como fonte <b>“Outros Recursos”</b> na qualificação do prestador. Confirme esses três cadastros no sistema Conta+JE.');
 
   const worst = [...R.findings.map(f=>f.sev), ...R.fileChecks.map(c=>c.sev)].reduce((a,s)=>SEVRANK[s]>SEVRANK[a]?s:a,'ok');
   const errN = R.findings.filter(f=>f.sev==='err').length;
@@ -362,7 +363,7 @@ function showSpaces(s){ return s.replace(/ /g,'·'); }
 function valueHTML(raw){
   const t = raw.replace(/^( *)(.*?)( *)$/s, (_,a,mid,b)=>
     (a?'<span class="sp">'+'·'.repeat(a.length)+'</span>':'')+esc(mid)+(b?'<span class="sp">'+'·'.repeat(b.length)+'</span>':''));
-  return t==='' ? '<span class="sp">(empty)</span>' : t;
+  return t==='' ? '<span class="sp">(vazio)</span>' : t;
 }
 let A=null, selected=0;
 
@@ -371,26 +372,26 @@ function render(){
   document.getElementById('fname').textContent = A.filename || '(no filename)';
   const v=document.getElementById('verdict');
   const causes = A.findings.filter(f=>f.sev==='err');
-  if(s.worst==='err'){ v.className='verdict err'; v.innerHTML='<h3>'+causes.length+' layout violation'+(causes.length>1?'s':'')+' found — likely cause of “file is invalid”</h3><p>Fix the errors below, regenerate and re-upload. Warnings list additional suspects if the error alone doesn’t resolve it.</p>'; }
-  else if(s.worst==='warn'){ v.className='verdict warn'; v.innerHTML='<h3>No hard layout violation — but there are suspects</h3><p>Structure, sums and counts all match the spec. Review the warnings and the TSE-side registration checks below.</p>'; }
-  else { v.className='verdict ok'; v.innerHTML='<h3>File conforms to the ATSEFCC layout</h3><p>If the upload still fails, the cause is on the TSE registration side (see the external checks note).</p>'; }
+  if(s.worst==='err'){ v.className='verdict err'; v.innerHTML='<h3>O arquivo viola o layout em '+causes.length+' ponto'+(causes.length>1?'s':'')+' — causa provável de “arquivo inválido”</h3><p>Corrija os erros abaixo, gere o arquivo novamente e reenvie. Se a correção não resolver a rejeição, revise os avisos.</p>'; }
+  else if(s.worst==='warn'){ v.className='verdict warn'; v.innerHTML='<h3>O arquivo não viola nenhuma regra do layout — mas há suspeitas</h3><p>A estrutura, as somas e os totais seguem o layout. Revise os avisos e as verificações externas abaixo.</p>'; }
+  else { v.className='verdict ok'; v.innerHTML='<h3>O arquivo segue o layout ATSEFCC</h3><p>Se o envio ainda falhar, a causa está nos cadastros do TSE. Veja a nota sobre verificações externas.</p>'; }
 
   document.getElementById('chips').innerHTML =
-    chip('info', s.lines+' lines', 'records')+
-    chip('info', (s.bytes/1024).toFixed(1)+' KB','')+
-    chip('info', s.countD1+' doação'+(s.countD1===1?'':'s'),'DETALHE 1')+
-    chip('info', s.countD2+' doadores','DETALHE 2')+
-    chip('ok', s.recOK,'records OK')+
-    (s.recWarn?chip('warn',s.recWarn,'with warnings'):'')+
-    (s.recErr?chip('err',s.recErr,'with errors'):'');
+    chip('info', s.lines+' linhas', '')+
+    chip('info', (s.bytes/1024).toLocaleString('pt-BR',{maximumFractionDigits:1})+' KB','')+
+    chip('info', s.countD1+(s.countD1===1?' doação':' doações'),'DETALHE 1')+
+    chip('info', s.countD2+(s.countD2===1?' doação individual':' doações individuais'),'DETALHE 2')+
+    chip('ok', s.recOK,'registros OK')+
+    (s.recWarn?chip('warn',s.recWarn,'com aviso'):'')+
+    (s.recErr?chip('err',s.recErr,'com erro'):'');
 
   document.getElementById('findings').innerHTML = A.findings.map(f=>
-    '<div class="finding '+f.sev+'"><span class="tag">'+({err:'Error',warn:'Suspect',info:'Note',ok:'OK'})[f.sev]+'</span><div><h4>'+f.title+'</h4><p>'+f.html+'</p></div></div>'
-  ).join('') || '<div class="finding ok"><span class="tag">OK</span><div><h4>No findings</h4><p>Every field matches the layout.</p></div></div>';
+    '<div class="finding '+f.sev+'"><span class="tag">'+({err:'Erro',warn:'Suspeita',info:'Nota',ok:'OK'})[f.sev]+'</span><div><h4>'+f.title+'</h4><p>'+f.html+'</p></div></div>'
+  ).join('') || '<div class="finding ok"><span class="tag">OK</span><div><h4>Nenhuma ocorrência</h4><p>Todos os campos seguem o layout.</p></div></div>';
   document.querySelectorAll('#findings a[data-goto]').forEach(a=>a.addEventListener('click',()=>{ selectRec(+a.dataset.goto); document.getElementById('detail').scrollIntoView({behavior:'smooth'}); }));
 
   document.querySelector('#filechecks tbody').innerHTML = A.fileChecks.map(c=>
-    '<tr><td><span class="pill '+c.sev+'">'+({ok:'PASS',warn:'WARN',err:'FAIL',info:'INFO'})[c.sev]+'</span></td><td>'+esc(c.name)+'</td><td>'+esc(c.msg)+'</td></tr>').join('');
+    '<tr><td><span class="pill '+c.sev+'">'+({ok:'OK',warn:'AVISO',err:'FALHA',info:'INFO'})[c.sev]+'</span></td><td>'+esc(c.name)+'</td><td>'+esc(c.msg)+'</td></tr>').join('');
 
   renderList(); selectRec(Math.min(selected, A.records.length-1));
 }
@@ -419,7 +420,7 @@ function renderList(){
       '<span class="who">'+esc(label)+'</span>'+
       '<span class="rt">'+(r.layout?r.layout.name:'?')+'</span></button>';
   }).join('');
-  document.getElementById('countnote').textContent = shown+' of '+A.records.length+' records';
+  document.getElementById('countnote').textContent = shown+' de '+A.records.length+' registros';
   box.querySelectorAll('.rec').forEach(b=>b.addEventListener('click',()=>selectRec(+b.dataset.i)));
 }
 function selectRec(i){
@@ -440,16 +441,16 @@ function selectRec(i){
     return '<tr id="fld-'+fi+'" class="'+(fr.status==='err'?'flag-err':fr.status==='warn'?'flag-warn':'')+'">'+
       '<td class="num">'+f.n+'</td>'+
       '<td class="campo">'+esc(f.campo)+'<span class="tipo">'+TIPO_LABEL[f.tipo]+(f.fixo!==undefined?' · fixo':'')+'</span></td>'+
-      '<td class="pos">'+f.de+'–'+f.ate+'<br>'+(f.ate-f.de+1)+' ch</td>'+
+      '<td class="pos">'+f.de+'–'+f.ate+'<br>'+(f.ate-f.de+1)+' caracteres</td>'+
       '<td><div class="value">'+valueHTML(fr.raw)+'</div>'+(human?'<div class="human">= '+esc(human)+'</div>':'')+msgs+'</td>'+
       '<td class="rule">'+f.rule+'</td>'+
-      '<td><span class="pill '+(fr.status==='ok'?'ok':fr.status)+'">'+({ok:'OK',warn:'WARN',err:'FAIL',info:'INFO'})[fr.status]+'</span></td></tr>';
+      '<td><span class="pill '+(fr.status==='ok'?'ok':fr.status)+'">'+({ok:'OK',warn:'AVISO',err:'FALHA',info:'INFO'})[fr.status]+'</span></td></tr>';
   }).join('');
   const recMsgs = r.msgs.length ? '<ul class="msgs">'+r.msgs.map(m=>'<li class="'+m.sev+'">'+esc(m.msg)+'</li>').join('')+'</ul>' : '';
-  d.innerHTML = '<h3>Line '+(i+1)+' — '+(r.layout?r.layout.name:'unknown record')+'</h3>'+
-    '<div class="meta">'+(r.layout?esc(r.layout.desc):'')+' · '+r.line.length+' characters'+recMsgs+'</div>'+
+  d.innerHTML = '<h3>Linha '+(i+1)+' — '+(r.layout?r.layout.name:'registro desconhecido')+'</h3>'+
+    '<div class="meta">'+(r.layout?esc(r.layout.desc):'')+' · '+r.line.length+' caracteres'+recMsgs+'</div>'+
     '<div class="linemap" role="presentation">'+map+'</div>'+
-    '<div class="scroll-x"><table class="fields"><thead><tr><th>#</th><th>Campo</th><th>Pos</th><th>Value in file (· = space)</th><th>Layout rule</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+    '<div class="scroll-x"><table class="fields"><thead><tr><th>#</th><th>Campo</th><th>Posição</th><th>Valor no arquivo (· = espaço)</th><th>Regra do layout</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
   d.querySelectorAll('.seg').forEach(sg=>sg.addEventListener('click',()=>{
     const row=document.getElementById('fld-'+sg.dataset.f); if(row){row.scrollIntoView({behavior:'smooth',block:'center'});}
   }));

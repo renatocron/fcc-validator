@@ -1,11 +1,20 @@
 # fcc-validator
 
-Client-side validator for TSE SPCE **ATSEFCC** (`.FCC`) crowdfunding donation files (Financiamento Coletivo de Campanha).
+Verificador de arquivos **ATSEFCC** (`.FCC`) — Financiamento Coletivo de Campanha do TSE.
 
-**Use it:** https://renatocron.github.io/fcc-validator/
+**Use aqui:** https://renatocron.github.io/fcc-validator/
 
-Drop a `.FCC` file on the page. Nothing is uploaded — all parsing and validation happens in your browser.
+Solte um arquivo `.FCC` na página. O navegador processa o arquivo localmente. A página não envia o arquivo para nenhum servidor.
 
-Checks every field of every record (HEADER, DETALHE 1, DETALHE 2, TRAILER) against the layout spec v3.0 (07/2022): positions, sizes, types, fixed values, padding/alignment rules, DDMMAAAA dates, allowed payment codes, CPF/CNPJ check digits, record order, line length (375), line endings, trailing line break, filename convention, and cross-record totals (trailer count, doações individuais, soma dos valores, crédito = total − taxa).
+O verificador confere cada campo de cada registro (HEADER, DETALHE 1, DETALHE 2 e TRAILER) contra o layout v3.0 (07/2022):
 
-Layout source: TSE — *Especificação de Layout de Arquivo, SPCE Financiamento Coletivo*, versão 3.0 (04/07/2022).
+- posição, tamanho, tipo e valor fixo de cada campo;
+- regras de preenchimento (zeros à esquerda, espaços à direita ou à esquerda);
+- datas na máscara DDMMAAAA;
+- códigos permitidos de espécie do recurso e de meio de pagamento;
+- dígitos verificadores de CPF e de CNPJ;
+- ordem dos registros, tamanho de linha (375 caracteres), terminadores de linha e quebra de linha final;
+- nomenclatura do arquivo;
+- totais cruzados: contagem do TRAILER, total de doações individuais, soma dos valores e crédito = total − taxa.
+
+Fonte do layout: TSE — *Especificação de Layout de Arquivo, Financiamento Coletivo de Campanha*, versão 3.0, de 2022-07-04, reeditada em julho de 2026 para o sistema Conta+JE.
